@@ -1,0 +1,103 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id            String            @id @default(cuid())
+  name          String
+  email         String            @unique
+  password      String
+  role          UserRole          @default(CLIENT)
+  createdAt     DateTime          @default(now())
+  updatedAt     DateTime          @updatedAt
+  remarks       Remark[]          @relation("UserRemarks")
+  sessions      Session[]
+  assignedVisas VisaApplication[] @relation("AssignedApplications")
+  applications  VisaApplication[] @relation("CreatedApplications")
+}
+
+model Session {
+  id           String   @id @default(cuid())
+  userId       String
+  refreshToken String
+  userAgent    String?
+  ip           String?
+  createdAt    DateTime @default(now())
+  expiresAt    DateTime
+  user         User     @relation(fields: [userId], references: [id])
+}
+
+model VisaApplication {
+  id             String     @id @default(cuid())
+  applicantName  String
+  passportNumber String
+  nationality    String
+  destination    String
+  visaType       String
+  status         VisaStatus @default(PENDING)
+  createdAt      DateTime   @default(now())
+  updatedAt      DateTime   @updatedAt
+  createdById    String
+  assignedToId   String?
+  documents      Document[]
+  payments       Payment[]
+  remarks        Remark[]
+  assignedTo     User?      @relation("AssignedApplications", fields: [assignedToId], references: [id])
+  createdBy      User       @relation("CreatedApplications", fields: [createdById], references: [id])
+}
+
+model Document {
+  id         String          @id @default(cuid())
+  visaId     String
+  fileName   String
+  fileUrl    String
+  uploadedAt DateTime        @default(now())
+  visa       VisaApplication @relation(fields: [visaId], references: [id])
+}
+
+model Payment {
+  id        String          @id @default(cuid())
+  visaId    String
+  amount    Float
+  currency  String          @default("INR")
+  status    PaymentStatus   @default(PENDING)
+  method    String?
+  createdAt DateTime        @default(now())
+  visa      VisaApplication @relation(fields: [visaId], references: [id])
+}
+
+model Remark {
+  id        String          @id @default(cuid())
+  visaId    String
+  text      String
+  authorId  String
+  createdAt DateTime        @default(now())
+  author    User            @relation("UserRemarks", fields: [authorId], references: [id])
+  visa      VisaApplication @relation(fields: [visaId], references: [id])
+}
+
+enum UserRole {
+  ADMIN
+  AGENCY
+  AGENT
+  CLIENT
+}
+
+enum VisaStatus {
+  PENDING
+  UNDER_REVIEW
+  APPROVED
+  REJECTED
+  CANCELLED
+}
+
+enum PaymentStatus {
+  PENDING
+  PAID
+  REFUNDED
+}
