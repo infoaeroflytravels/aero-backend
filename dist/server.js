@@ -8,23 +8,27 @@ const dotenv_1 = __importDefault(require("dotenv"));
 const cors_1 = __importDefault(require("cors"));
 const cookie_parser_1 = __importDefault(require("cookie-parser"));
 const auth_routes_1 = __importDefault(require("./modules/auth/auth.routes"));
-const user_routes_1 = __importDefault(require("./modules/users/user.routes")); // 👈 Add this
+const user_routes_1 = __importDefault(require("./modules/users/user.routes"));
 const db_1 = require("./utils/db");
 dotenv_1.default.config();
 const app = (0, express_1.default)();
 const PORT = process.env.PORT || 4000;
 app.use(express_1.default.json());
 app.use((0, cookie_parser_1.default)());
+// ✅ Updated CORS configuration
 app.use((0, cors_1.default)({
     origin: [
-        "http://localhost:3000", // React dev
-        "http://localhost:5173", // Vite dev
+        "http://localhost:3000", // Next.js local dev
+        "http://localhost:5173", // Vite local dev
+        "http://192.168.56.1:3000", // LAN/local network access
     ],
+    methods: ["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],
+    allowedHeaders: ["Content-Type", "Authorization"],
     credentials: true,
 }));
-// ✅ Add routes
+// ✅ Routes
 app.use("/api/auth", auth_routes_1.default);
-app.use("/api/users", user_routes_1.default); // 👈 Add this line
+app.use("/api/users", user_routes_1.default);
 app.get("/api/health", (_req, res) => res.json({ ok: true, env: process.env.NODE_ENV || "development" }));
 app.get("/", (_req, res) => {
     res.send(`
@@ -33,6 +37,7 @@ app.get("/", (_req, res) => {
     <p>Try <a href="/api/health">/api/health</a> to check status.</p>
   `);
 });
+// ✅ Initialize DB and start server
 (0, db_1.initDb)()
     .then(() => {
     app.listen(PORT, () => {
